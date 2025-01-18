@@ -170,14 +170,14 @@ def transform_adstock(media_data: jnp.ndarray,
   transform_default_priors = _get_transform_default_priors()["adstock"]
   with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate",
                      size=media_data.shape[1]):
-    lag_weight = numpyro.sample(
+    gamma_alpha = numpyro.sample(
         name=_GAMMA_ALPHA,
         fn=custom_priors.get(_GAMMA_ALPHA,
                              transform_default_priors[_GAMMA_ALPHA]))
     
   with numpyro.plate(name=f"{_GAMMA_BETA}_plate",
                      size=media_data.shape[1]):
-    lag_weight = numpyro.sample(
+    gamma_beta = numpyro.sample(
         name=_GAMMA_BETA,
         fn=custom_priors.get(_GAMMA_BETA,
                              transform_default_priors[_GAMMA_BETA]))
@@ -219,14 +219,14 @@ def transform_hill_adstock(media_data: jnp.ndarray,
   transform_default_priors = _get_transform_default_priors()["hill_adstock"]
   with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate",
                      size=media_data.shape[1]):
-    lag_weight = numpyro.sample(
+    gamma_alpha = numpyro.sample(
         name=_GAMMA_ALPHA,
         fn=custom_priors.get(_GAMMA_ALPHA,
                              transform_default_priors[_GAMMA_ALPHA]))
   
   with numpyro.plate(name=f"{_GAMMA_BETA}_plate",
                      size=media_data.shape[1]):
-    lag_weight = numpyro.sample(
+    gamma_beta = numpyro.sample(
         name=_GAMMA_BETA,
         fn=custom_priors.get(_GAMMA_BETA,
                              transform_default_priors[_GAMMA_BETA]))
