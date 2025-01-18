@@ -98,7 +98,7 @@ def adstock(data: jnp.ndarray,
         return adstock_value, adstock_value
 
     # Check gamma parameters
-    if gamma_alpha <= 0 or gamma_beta <= 0:
+    if (gamma_alpha <= 0).any() or (gamma_beta <= 0).any():
         raise ValueError("Gamma parameters must be positive.")
 
     # Calculate weights based on gamma parameters and lag values
