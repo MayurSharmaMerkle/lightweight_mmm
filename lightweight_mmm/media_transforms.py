@@ -92,8 +92,8 @@ def adstock(data: jnp.ndarray,
 
     def adstock_internal(prev_adstock: jnp.ndarray,
                          data: jnp.ndarray,
-                         gamma_alpha: float,
-                         gamma_beta: float) -> jnp.ndarray:
+                         gamma_alpha: float = gamma_alpha,
+                         gamma_beta: float = gamma_beta) -> jnp.ndarray:
         adstock_value = prev_adstock + data
         return adstock_value, adstock_value
 
