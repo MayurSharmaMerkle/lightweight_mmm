@@ -97,9 +97,9 @@ def adstock(data: jnp.ndarray,
         adstock_value = prev_adstock + data
         return adstock_value, adstock_value
 
-    # Check gamma parameters
-    if (gamma_alpha <= 0).any() or (gamma_beta <= 0).any():
-        raise ValueError("Gamma parameters must be positive.")
+    # # Check gamma parameters
+    # if (gamma_alpha <= 0).any() or (gamma_beta <= 0).any():
+    #     raise ValueError("Gamma parameters must be positive.")
 
     # Calculate weights based on gamma parameters and lag values
     lags = jnp.arange(1, max_lag + 1)
@@ -109,8 +109,8 @@ def adstock(data: jnp.ndarray,
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights) + 1e-6
 
-    # Debugging: Print weights to check for any issues
-    print("Weights:", weights)
+    # # Debugging: Print weights to check for any issues
+    # print("Weights:", weights)
 
     # Apply the adstock function iteratively
     adstock_values = jnp.zeros_like(data, dtype=jnp.float32)
@@ -121,8 +121,8 @@ def adstock(data: jnp.ndarray,
                 lagged_data = lagged_data.at[lag - 1].set(data[i - lag])
         adstock_values = adstock_values.at[i].set(jnp.sum(lagged_data * weights))
 
-    # Debugging: Print adstock_values before normalization
-    print("Adstock Values (before normalization):", adstock_values)
+    # # Debugging: Print adstock_values before normalization
+    # print("Adstock Values (before normalization):", adstock_values)
 
     return jax.lax.cond(
         normalise,
