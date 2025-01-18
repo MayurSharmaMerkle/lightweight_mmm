@@ -82,7 +82,6 @@ def adstock(data: jnp.ndarray,
         data: Input array.
         gamma_alpha: Alpha parameter for the gamma distribution.
         gamma_beta: Beta parameter for the gamma distribution.
-        exponent: Exponent to apply to the weights.
         max_lag: Maximum lag to consider for the adstock calculation. Default is 13.
         normalise: Whether to normalise the output value.
 
@@ -97,9 +96,13 @@ def adstock(data: jnp.ndarray,
         adstock_value = prev_adstock + data
         return adstock_value, adstock_value
 
-    # # Check gamma parameters
-    # if (gamma_alpha <= 0).any() or (gamma_beta <= 0).any():
-    #     raise ValueError("Gamma parameters must be positive.")
+    # # Check gamma parameters using jax.lax.cond
+    # gamma_alpha, gamma_beta = jax.lax.cond(
+    #     (gamma_alpha <= 0).any() | (gamma_beta <= 0).any(),
+    #     lambda _: _raise_value_error("Gamma parameters must be positive."),
+    #     lambda _: (gamma_alpha, gamma_beta),
+    #     operand=None
+    # )
 
     # Calculate weights based on gamma parameters and lag values
     lags = jnp.arange(1, max_lag + 1)
@@ -109,17 +112,22 @@ def adstock(data: jnp.ndarray,
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights) + 1e-6
 
-    # # Debugging: Print weights to check for any issues
-    # print("Weights:", weights)
+    # # Debugging: Print shapes to check for any issues
+    # print("Data shape:", data.shape)
+    # print("Weights shape:", weights.shape)
 
     # Apply the adstock function iteratively
     adstock_values = jnp.zeros_like(data, dtype=jnp.float32)
-    for i in range(len(data)):
-        lagged_data = jnp.zeros(max_lag, dtype=jnp.float32)
-        for lag in range(1, max_lag + 1):
-            if i - lag >= 0:
-                lagged_data = lagged_data.at[lag - 1].set(data[i - lag])
-        adstock_values = adstock_values.at[i].set(jnp.sum(lagged_data * weights))
+    for i in range(data.shape[0]):
+        for j in range(data.shape[1]):
+            lagged_data = jnp.zeros((max_lag, data.shape[2]), dtype=jnp.float32)
+            for lag in range(1, max_lag + 1):
+                if i - lag >= 0:
+                    print(f"Setting lagged_data[{lag - 1}] with data[{i - lag}, {j}]")
+                    print("lagged_data shape:", lagged_data.shape)
+                    print("data shape:", data.shape)
+                    lagged_data = lagged_data.at[lag - 1].set(data[i - lag, j])
+            adstock_values = adstock_values.at[i, j].set(jnp.sum(lagged_data * weights[:, None], axis=0))
 
     # # Debugging: Print adstock_values before normalization
     # print("Adstock Values (before normalization):", adstock_values)
