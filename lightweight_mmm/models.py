@@ -150,8 +150,8 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
           }),
       "hill_adstock":
           immutabledict.immutabledict({
-              _GAMMA_ALPHA: dist.Beta(concentration1=2., concentration0=5.),
-              _GAMMA_BETA: dist.Beta(concentration1=2., concentration0=5.),
+              _LAG_WEIGHT:
+                  dist.Beta(concentration1=2., concentration0=1.),
               _HALF_MAX_EFFECTIVE_CONCENTRATION:
                   dist.Gamma(concentration=1., rate=1.),
               _SLOPE:
