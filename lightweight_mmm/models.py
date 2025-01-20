@@ -420,8 +420,8 @@ def media_mix_model(
                                  **transform_kwargs if transform_kwargs else {}))
     
     # Print shapes for debugging
-    print(f"media_transformed shape: {media_transformed.shape}")
-    print(f"coef_media shape: {coef_media.shape}")
+    print(f"media_transformed shape: {media_transformed}")
+    print(f"coef_media shape: {coef_media}")
 
     seasonality = media_transforms.calculate_seasonality(
         number_periods=data_size,
