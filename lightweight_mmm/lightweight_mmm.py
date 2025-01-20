@@ -61,6 +61,7 @@ Prior = Union[
 _NAMES_TO_MODEL_TRANSFORMS = immutabledict.immutabledict({
     "hill_adstock": models.transform_hill_adstock,
     "adstock": models.transform_adstock,
+    "gamma_adstock": models.transform_gamma_adstock,
     "carryover": models.transform_carryover
 })
 _MODEL_FUNCTION = models.media_mix_model
@@ -123,6 +124,7 @@ class LightweightMMM:
   The currently available models are the following:
    - hill_adstock
    - adstock
+   - gamma_adstock
    - carryover
 
   It also offers the necessary utilities for calculating media contribution and
@@ -166,7 +168,7 @@ class LightweightMMM:
   def __post_init__(self):
     if self.model_name not in _NAMES_TO_MODEL_TRANSFORMS:
       raise ValueError("Model name passed not valid. Please use any of the"
-                       "following: 'hill_adstock', 'adstock', 'carryover'.")
+                       "following: 'hill_adstock', 'gamma_adstock','adstock', 'carryover'.")
     self._model_function = _MODEL_FUNCTION
     self._model_transform_function = _NAMES_TO_MODEL_TRANSFORMS[self.model_name]
     self._prior_names = models.MODEL_PRIORS_NAMES.union(

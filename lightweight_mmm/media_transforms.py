@@ -59,7 +59,7 @@ def calculate_seasonality(
   return (season_matrix * gamma_seasonality).sum(axis=2).sum(axis=1)
 
 @functools.partial(jax.vmap, in_axes=(1, 1, None), out_axes=1)
-def _adstock_convolve(data: jnp.ndarray,
+def _gamma_adstock_convolve(data: jnp.ndarray,
                       weights: jnp.ndarray,
                       max_lag: int) -> jnp.ndarray:
     """Applies the convolution between the data and the weights for the adstock.
@@ -76,7 +76,7 @@ def _adstock_convolve(data: jnp.ndarray,
     return jax.scipy.signal.convolve(data, window, mode="same") / weights.sum()
 
 @functools.partial(jax.jit, static_argnames=("max_lag",))
-def adstock(data: jnp.ndarray,
+def gamma_adstock(data: jnp.ndarray,
             gamma_alpha: jnp.ndarray,
             gamma_beta: jnp.ndarray,
             max_lag: int = 13) -> jnp.ndarray:
@@ -85,18 +85,18 @@ def adstock(data: jnp.ndarray,
     Args:
         data: Input data. It is expected that data has either 2 dimensions for
           national models and 3 for geo models.
-        gamma_alpha: Alpha parameter for the gamma distribution.
-        gamma_beta: Beta parameter for the gamma distribution.
+        gamma_alpha: Alpha parameter for the beta distribution.
+        gamma_beta: Beta parameter for the beta distribution.
         max_lag: Maximum lag to consider for the adstock calculation. Default is 13.
 
     Returns:
-        The adstock output of the input array.
+        The gamma adstock output of the input array.
     """
     lags = jnp.expand_dims(jnp.arange(1, max_lag + 1), axis=-1)
-    convolve_func = _adstock_convolve
+    convolve_func = _gamma_adstock_convolve
     if data.ndim == 3:
         convolve_func = jax.vmap(
-            fun=_adstock_convolve, in_axes=(2, None, None), out_axes=2)
+            fun=_gamma_adstock_convolve, in_axes=(2, None, None), out_axes=2)
     
     weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
     
@@ -104,10 +104,43 @@ def adstock(data: jnp.ndarray,
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights) + 1e-6
 
-    if data.ndim == 2:
-        return convolve_func(data, weights, max_lag)
-    elif data.ndim == 3:
-        return convolve_func(data, weights, max_lag)
+    return convolve_func(data, weights, max_lag)
+
+
+
+@jax.jit
+def adstock(data: jnp.ndarray,
+            lag_weight: float = .9,
+            normalise: bool = True) -> jnp.ndarray:
+  """Calculates the adstock value of a given array.
+
+  To learn more about advertising lag:
+  https://en.wikipedia.org/wiki/Advertising_adstock
+
+  Args:
+    data: Input array.
+    lag_weight: lag_weight effect of the adstock function. Default is 0.9.
+    normalise: Whether to normalise the output value. This normalization will
+      divide the output values by (1 / (1 - lag_weight)).
+
+  Returns:
+    The adstock output of the input array.
+  """
+
+  def adstock_internal(prev_adstock: jnp.ndarray,
+                       data: jnp.ndarray,
+                       lag_weight: float = lag_weight) -> jnp.ndarray:
+    adstock_value = prev_adstock * lag_weight + data
+    return adstock_value, adstock_value# jax-ndarray
+
+  _, adstock_values = jax.lax.scan(
+      f=adstock_internal, init=data[0, ...], xs=data[1:, ...])
+  adstock_values = jnp.concatenate([jnp.array([data[0, ...]]), adstock_values])
+  return jax.lax.cond(
+      normalise,
+      lambda adstock_values: adstock_values / (1. / (1 - lag_weight)),
+      lambda adstock_values: adstock_values,
+      operand=adstock_values)
 
 
 @jax.jit
