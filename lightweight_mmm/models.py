@@ -193,8 +193,7 @@ def transform_adstock(media_data: jnp.ndarray,
       data=media_data, 
       gamma_alpha=gamma_alpha, 
       gamma_beta=gamma_beta,
-      max_lag=max_lag,
-      normalise=normalise)
+      max_lag=max_lag)
     
   if media_data.ndim == 3:
     # gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
