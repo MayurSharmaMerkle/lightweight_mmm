@@ -190,19 +190,20 @@ def transform_adstock(media_data: jnp.ndarray,
         fn=custom_priors.get(_EXPONENT,
                              transform_default_priors[_EXPONENT]))
 
-  if media_data.ndim == 3:
-    # gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
-    # gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
-    exponent = jnp.expand_dims(exponent, axis=-1)
-
-  adstock = media_transforms.adstock(
+    adstock = media_transforms.adstock(
       data=media_data, 
       gamma_alpha=gamma_alpha, 
       gamma_beta=gamma_beta,
       max_lag=max_lag,
       normalise=normalise)
+    
+  if media_data.ndim == 3:
+    # gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
+    # gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
+    exponent = jnp.expand_dims(exponent, axis=-1)
 
-  return media_transforms.apply_exponent_safe(data=adstock, exponent=exponent)
+#   return media_transforms.apply_exponent_safe(data=adstock, exponent=exponent)
+  return media_transforms
 
 
 def transform_hill_adstock(media_data: jnp.ndarray,
