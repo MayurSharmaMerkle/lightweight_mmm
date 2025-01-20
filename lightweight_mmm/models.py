@@ -423,12 +423,7 @@ def media_mix_model(
                                  custom_priors=custom_priors,
                                  **transform_kwargs if transform_kwargs else {}))
     
-    # Print shapes for debugging
-    # Print shapes for debugging
     import jax
-    import jax.numpy as jnp
-    # import numpyro
-    # import numpyro.distributions as dist
     jax.debug.print("media_transformed: {}", media_transformed)
     jax.debug.print("coef_media: {}", coef_media)
     jax.debug.print("media_transformed shape: {}", media_transformed.shape)
