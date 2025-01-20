@@ -424,8 +424,11 @@ def media_mix_model(
                                  **transform_kwargs if transform_kwargs else {}))
     
     # Print shapes for debugging
-    print(f"media_transformed shape: {media_transformed}")
-    print(f"coef_media shape: {coef_media}")
+    # Print shapes for debugging
+    jax.debug.print("media_transformed: {}", media_transformed)
+    jax.debug.print("coef_media: {}", coef_media)
+    jax.debug.print("media_transformed shape: {}", media_transformed.shape)
+    jax.debug.print("coef_media shape: {}", coef_media.shape)
 
     seasonality = media_transforms.calculate_seasonality(
         number_periods=data_size,
