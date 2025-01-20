@@ -412,6 +412,10 @@ def media_mix_model(
             transform_kwargs["number_lags"] = 13 * 7
         elif transform_function == "carryover" and not transform_kwargs:
             transform_kwargs = {"number_lags": 13 * 7}
+        if transform_function == "adstock" and transform_kwargs and "max_lag" not in transform_kwargs:
+            transform_kwargs["max_lag"] = 13 * 7
+        elif transform_function == "adstock" and not transform_kwargs:
+            transform_kwargs = {"max_lag": 13 * 7}
 
     media_transformed = numpyro.deterministic(
         name="media_transformed",
