@@ -20,20 +20,15 @@ def adstock(data: jnp.ndarray,
         The adstock output of the input array.
     """
 
-    # # Check gamma parameters
-    # if gamma_alpha <= 0 or gamma_beta <= 0:
-    #     raise ValueError("Gamma parameters must be positive.")
-
     # Calculate weights based on gamma parameters and lag values
     lags = jnp.arange(1, max_lag + 1)
+    gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
+    gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
     weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
     
     # Handle potential invalid values in weights
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights) + 1e-6
-
-    # # Debugging: Print weights to check for any issues
-    # print("Weights:", weights)
 
     def adstock_internal_convolve(data: jnp.ndarray,
                                   weights: jnp.ndarray, 
@@ -56,9 +51,6 @@ def adstock(data: jnp.ndarray,
         convolve_func = jax.vmap(adstock_internal_convolve, in_axes=(2, None, None), out_axes=2)
 
     adstock_values = convolve_func(data, weights, max_lag)
-
-    # # Debugging: Print adstock_values before normalization
-    # print("Adstock Values (before normalization):", adstock_values)
 
     return jax.lax.cond(
         normalise,
