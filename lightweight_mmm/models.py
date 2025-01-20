@@ -153,8 +153,7 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
-                      max_lag: int = 13,
-                      normalise: bool = True) -> jnp.ndarray:
+                      max_lag: int = 13) -> jnp.ndarray:
   """Transforms the input data with the adstock function and exponent.
 
   Args:
