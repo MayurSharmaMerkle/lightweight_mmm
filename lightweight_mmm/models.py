@@ -153,6 +153,7 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
+                      max_lag: int = 13,
                       normalise: bool = True) -> jnp.ndarray:
   """Transforms the input data with the adstock function and exponent.
 
@@ -190,12 +191,16 @@ def transform_adstock(media_data: jnp.ndarray,
                              transform_default_priors[_EXPONENT]))
 
   if media_data.ndim == 3:
-    gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
-    gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
+    # gamma_alpha = jnp.expand_dims(gamma_alpha, axis=-1)
+    # gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
     exponent = jnp.expand_dims(exponent, axis=-1)
 
   adstock = media_transforms.adstock(
-      data=media_data, gamma_alpha=gamma_alpha, gamma_beta=gamma_beta, normalise=normalise)
+      data=media_data, 
+      gamma_alpha=gamma_alpha, 
+      gamma_beta=gamma_beta,
+      max_lag=max_lag,
+      normalise=normalise)
 
   return media_transforms.apply_exponent_safe(data=adstock, exponent=exponent)
 
