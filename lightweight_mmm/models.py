@@ -200,8 +200,7 @@ def transform_adstock(media_data: jnp.ndarray,
     # gamma_beta = jnp.expand_dims(gamma_beta, axis=-1)
     exponent = jnp.expand_dims(exponent, axis=-1)
 
-#   return media_transforms.apply_exponent_safe(data=adstock, exponent=exponent)
-  return media_transforms
+  return media_transforms.apply_exponent_safe(data=adstock, exponent=exponent)
 
 
 def transform_hill_adstock(media_data: jnp.ndarray,
