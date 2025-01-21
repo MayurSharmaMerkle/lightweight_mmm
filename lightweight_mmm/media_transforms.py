@@ -59,28 +59,30 @@ def calculate_seasonality(
   return (season_matrix * gamma_seasonality).sum(axis=2).sum(axis=1)
 
 @functools.partial(jax.vmap, in_axes=(1, 1, None), out_axes=1)
-@functools.partial(jax.vmap, in_axes=(1, 1, None), out_axes=1)
 def _gamma_adstock_convolve(data: jnp.ndarray,
                             weights: jnp.ndarray,
                             max_lag: int) -> jnp.ndarray:
     window = jnp.concatenate([jnp.zeros(max_lag - 1), weights])
     return jax.scipy.signal.convolve(data, window, mode="same") / weights.sum()
 
+@functools.partial(jax.jit, static_argnames=("max_lag",))
 def gamma_adstock(data: jnp.ndarray,
                   gamma_alpha: jnp.ndarray,
                   gamma_beta: jnp.ndarray,
-                  max_lag: int = 13) -> (jnp.ndarray, jnp.ndarray):
+                  max_lag: int = 13) -> jnp.ndarray:
     lags = jnp.expand_dims(jnp.arange(1, max_lag + 1), axis=-1)
     weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
-    weights /= jnp.sum(weights) + 1e-6
+    weights /= jnp.sum(weights, axis=0, keepdims=True) + 1e-6  # Normalize weights for each column
 
     convolve_func = _gamma_adstock_convolve
     if data.ndim == 3:
         convolve_func = jax.vmap(
             fun=_gamma_adstock_convolve, in_axes=(2, None, None), out_axes=2)
-
-    # result = convolve_func(data, weights, max_lag)
+        
+    # Ensure data has at least 2 dimensions
+    if data.ndim == 1:
+        data = data[:, None]
     return convolve_func(data, weights, max_lag)
 
 @jax.jit
