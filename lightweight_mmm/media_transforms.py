@@ -59,54 +59,29 @@ def calculate_seasonality(
   return (season_matrix * gamma_seasonality).sum(axis=2).sum(axis=1)
 
 @functools.partial(jax.vmap, in_axes=(1, 1, None), out_axes=1)
+@functools.partial(jax.vmap, in_axes=(1, 1, None), out_axes=1)
 def _gamma_adstock_convolve(data: jnp.ndarray,
-                      weights: jnp.ndarray,
-                      max_lag: int) -> jnp.ndarray:
-    """Applies the convolution between the data and the weights for the adstock.
-
-    Args:
-        data: Input data.
-        weights: Window weights for the adstock.
-        max_lag: Number of lags the window has.
-
-    Returns:
-        The result values from convolving the data and the weights with padding.
-    """
+                            weights: jnp.ndarray,
+                            max_lag: int) -> jnp.ndarray:
     window = jnp.concatenate([jnp.zeros(max_lag - 1), weights])
     return jax.scipy.signal.convolve(data, window, mode="same") / weights.sum()
 
-@functools.partial(jax.jit, static_argnames=("max_lag",))
 def gamma_adstock(data: jnp.ndarray,
-            gamma_alpha: jnp.ndarray,
-            gamma_beta: jnp.ndarray,
-            max_lag: int = 13) -> jnp.ndarray:
-    """Calculates the adstock value of a given array with gamma parameters.
-
-    Args:
-        data: Input data. It is expected that data has either 2 dimensions for
-          national models and 3 for geo models.
-        gamma_alpha: Alpha parameter for the beta distribution.
-        gamma_beta: Beta parameter for the beta distribution.
-        max_lag: Maximum lag to consider for the adstock calculation. Default is 13.
-
-    Returns:
-        The gamma adstock output of the input array.
-    """
+                  gamma_alpha: jnp.ndarray,
+                  gamma_beta: jnp.ndarray,
+                  max_lag: int = 13) -> (jnp.ndarray, jnp.ndarray):
     lags = jnp.expand_dims(jnp.arange(1, max_lag + 1), axis=-1)
+    weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
+    weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
+    weights /= jnp.sum(weights) + 1e-6
+
     convolve_func = _gamma_adstock_convolve
     if data.ndim == 3:
         convolve_func = jax.vmap(
             fun=_gamma_adstock_convolve, in_axes=(2, None, None), out_axes=2)
-    
-    weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
-    
-    # Handle potential invalid values in weights
-    weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
-    weights /= jnp.sum(weights) + 1e-6
 
-    return convolve_func(data, weights, max_lag)
-
-
+    result = convolve_func(data, weights, max_lag)
+    return result, weights
 
 @jax.jit
 def adstock(data: jnp.ndarray,
