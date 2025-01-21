@@ -80,8 +80,8 @@ def gamma_adstock(data: jnp.ndarray,
         convolve_func = jax.vmap(
             fun=_gamma_adstock_convolve, in_axes=(2, None, None), out_axes=2)
 
-    result = convolve_func(data, weights, max_lag)
-    return result, weights
+    # result = convolve_func(data, weights, max_lag)
+    return convolve_func(data, weights, max_lag)
 
 @jax.jit
 def adstock(data: jnp.ndarray,
