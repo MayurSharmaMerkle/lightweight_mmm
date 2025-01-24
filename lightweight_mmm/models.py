@@ -98,10 +98,10 @@ _PEAK_EFFECT_DELAY = "peak_effect_delay"
 TRANSFORM_PRIORS_NAMES = immutabledict.immutabledict({
     "carryover":
         frozenset((_AD_EFFECT_RETENTION_RATE, _PEAK_EFFECT_DELAY, _EXPONENT)),
-    # "gamma_adstock":
-    #     frozenset((_EXPONENT, _GAMMA_ALPHA, _GAMMA_BETA)),
     "gamma_adstock":
-        frozenset(( _GAMMA_ALPHA, _GAMMA_BETA)),
+        frozenset((_EXPONENT, _GAMMA_ALPHA, _GAMMA_BETA)),
+    # "gamma_adstock":
+        # frozenset(( _GAMMA_ALPHA, _GAMMA_BETA)),
     "adstock":
         frozenset((_EXPONENT, _LAG_WEIGHT)),
     "hill_adstock":
@@ -141,7 +141,7 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
           }),
       "gamma_adstock":
           immutabledict.immutabledict({
-              # _EXPONENT: dist.Beta(concentration1=9., concentration0=1.),
+              _EXPONENT: dist.Beta(concentration1=9., concentration0=1.),
               _GAMMA_ALPHA: dist.Beta(concentration1=2., concentration0=5.),
               _GAMMA_BETA: dist.Beta(concentration1=2., concentration0=5.)
           }),
@@ -210,47 +210,53 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
 
 #   return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
-def transform_gamma_adstock(
-    media_data: jnp.ndarray,
-    custom_priors: MutableMapping[str, dist.Distribution],
-    max_lag: int = 13,
-    num_samples: int = 2000
-) -> jnp.ndarray:
-    transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
+def transform_gamma_adstock(media_data: jnp.ndarray,
+                      custom_priors: MutableMapping[str, Prior],
+                      max_lag: int = 13) -> jnp.ndarray:
+  """Transforms the input data with the gamma adstock function and exponent.
+
+  Args:
+    media_data: Media data to be transformed. It is expected to have 2 dims for
+      national models and 3 for geo models.
+    custom_priors: The custom priors we want the model to take instead of the
+      default ones. The possible names of parameters for gamma adstock and exponent
+      are "gamma_alpha", "gamma_beta" and "exponent".
+
+  Returns:
+    The transformed media data.
+  """
+  transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
+  with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate",
+                     size=media_data.shape[1]):
+    gamma_alpha = numpyro.sample(
+        name=_GAMMA_ALPHA,
+        fn=custom_priors.get(_GAMMA_ALPHA,
+                             transform_default_priors[_GAMMA_ALPHA]))
     
-    # Sample parameters
-    gamma_alpha_samples = numpyro.sample(
-        name="gamma_alpha_samples",
-        fn=custom_priors.get("gamma_alpha", transform_default_priors["gamma_alpha"]),
-        sample_shape=(num_samples, media_data.shape[1])
-    )
-    gamma_beta_samples = numpyro.sample(
-        name="gamma_beta_samples",
-        fn=custom_priors.get("gamma_beta", transform_default_priors["gamma_beta"]),
-        sample_shape=(num_samples, media_data.shape[1])
-    )
+  with numpyro.plate(name=f"{_GAMMA_BETA}_plate",
+                     size=media_data.shape[1]):
+    gamma_beta = numpyro.sample(
+        name=_GAMMA_BETA,
+        fn=custom_priors.get(_GAMMA_BETA,
+                             transform_default_priors[_GAMMA_BETA]))
+
+  with numpyro.plate(name=f"{_EXPONENT}_plate",
+                     size=media_data.shape[1]):
+    exponent = numpyro.sample(
+        name=_EXPONENT,
+        fn=custom_priors.get(_EXPONENT,
+                             transform_default_priors[_EXPONENT]))
+
+    gamma_adstock = media_transforms.gamma_adstock(
+      data=media_data, 
+      gamma_alpha=gamma_alpha, 
+      gamma_beta=gamma_beta,
+      max_lag=max_lag)
     
-    # Calculate mean of samples for each channel separately
-    gamma_alpha_mean = jnp.mean(gamma_alpha_samples, axis=0)
-    gamma_beta_mean = jnp.mean(gamma_beta_samples, axis=0)
-    
-    # Apply transformation using mean values
-    gamma_adstock, weights = media_transforms.gamma_adstock(
-        data=media_data,
-        gamma_alpha=gamma_alpha_mean,
-        gamma_beta=gamma_beta_mean,
-        max_lag=max_lag
-    )
-    
-    # Define default exponents for 6 media channels
-    exponents = jnp.array([0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-    
-    # Apply the exponents
-    if media_data.ndim == 3:
-        exponents = jnp.expand_dims(exponents, axis=-1)
-    
-    transformed_data = gamma_adstock ** exponents
-    return transformed_data, weights, exponents
+  if media_data.ndim == 3:
+    exponent = jnp.expand_dims(exponent, axis=-1)
+
+  return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
