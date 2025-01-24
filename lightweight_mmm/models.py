@@ -205,6 +205,8 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
       gamma_beta=gamma_beta,
       max_lag=max_lag)
     
+    print(gamma_alpha.shape)
+  print(gamma_alpha.shape)
   if media_data.ndim == 3:
     exponent = jnp.expand_dims(exponent, axis=-1)
 
