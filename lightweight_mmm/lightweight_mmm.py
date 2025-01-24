@@ -253,11 +253,153 @@ class LightweightMMM:
             "documentation on custom priors to know more.")
     return custom_priors
 
+  # def fit(
+  #     self,
+  #     media: jnp.ndarray,
+  #     media_prior: jnp.ndarray,
+  #     target: jnp.ndarray,
+  #     extra_features: Optional[jnp.ndarray] = None,
+  #     degrees_seasonality: int = 2,
+  #     seasonality_frequency: int = 52,
+  #     weekday_seasonality: bool = False,
+  #     media_names: Optional[Sequence[str]] = None,
+  #     number_warmup: int = 1000,
+  #     number_samples: int = 1000,
+  #     number_chains: int = 2,
+  #     target_accept_prob: float = .85,
+  #     init_strategy: Callable[[Mapping[Any, Any], Any],
+  #                             jnp.ndarray] = numpyro.infer.init_to_median,
+  #     custom_priors: Optional[Dict[str, Prior]] = None,
+  #     seed: Optional[int] = None) -> None:
+  #   """Fits MMM given the media data, extra features, costs and sales/KPI.
+
+  #   For detailed information on the selected model please refer to its
+  #   respective function in the models.py file.
+
+  #   Args:
+  #     media: Media input data. Media data must have either 2 dims for national
+  #       model or 3 for geo models.
+  #     media_prior: Costs of each media channel. The number of cost values must
+  #       be equal to the number of media channels.
+  #     target: Target KPI to use, like for example sales.
+  #     extra_features: Other variables to add to the model.
+  #     degrees_seasonality: Number of degrees to use for seasonality. Default is
+  #       2.
+  #     seasonality_frequency: Frequency of the time period used. Default is 52 as
+  #       in 52 weeks per year.
+  #     weekday_seasonality: In case of daily data, also estimate seven weekday
+  #       parameters.
+  #     media_names: Names of the media channels passed.
+  #     number_warmup: Number of warm up samples. Default is 1000.
+  #     number_samples: Number of samples during sampling. Default is 1000.
+  #     number_chains: Number of chains to sample. Default is 2.
+  #     target_accept_prob: Target acceptance probability for step size in the
+  #       NUTS sampler. Default is .85.
+  #     init_strategy: Initialization function for numpyro NUTS. The available
+  #       options can be found in
+  #       https://num.pyro.ai/en/stable/utilities.html#initialization-strategies.
+  #       Default is numpyro.infer.init_to_median.
+  #     custom_priors: The custom priors we want the model to take instead of the
+  #       default ones. Refer to the full documentation on custom priors for
+  #       details.
+  #     seed: Seed to use for PRNGKey during training. For better replicability
+  #       run all different trainings with the same seed.
+  #   """
+  #   if media.ndim not in (2, 3):
+  #     raise ValueError(
+  #         "Media data must have either 2 dims for national model or 3 for geo "
+  #         "models.")
+  #   if media.ndim == 3 and media_prior.ndim == 1:
+  #     media_prior = jnp.expand_dims(media_prior, axis=-1)
+
+  #   if media.shape[1] != len(media_prior):
+  #     raise ValueError("The number of data channels provided must match the "
+  #                      "number of cost values.")
+  #   if media.min() < 0:
+  #     raise ValueError("Media values must be greater or equal to zero.")
+
+  #   if custom_priors:
+  #     not_used_custom_priors = set(custom_priors.keys()).difference(
+  #         self._prior_names)
+  #     if not_used_custom_priors:
+  #       raise ValueError(
+  #           "The following passed custom priors dont have a match in the model."
+  #           " Please double check the names have been written correctly: %s" %
+  #           not_used_custom_priors)
+  #     custom_priors = self._preprocess_custom_priors(
+  #         custom_priors=custom_priors)
+  #     geo_custom_priors = set(custom_priors.keys()).intersection(
+  #         models.GEO_ONLY_PRIORS)
+  #     if media.ndim == 2 and geo_custom_priors:
+  #       raise ValueError(
+  #           "The given data is for national models but custom_prior contains "
+  #           "priors for the geo version of the model. Please either remove geo "
+  #           "priors for national model or pass media data with geo dimension.")
+  #   else:
+  #     custom_priors = {}
+
+  #   if weekday_seasonality and seasonality_frequency == 52:
+  #     logging.warn("You have chosen daily seasonality and frequency 52 "
+  #                  "(weekly), please check you made the right seasonality "
+  #                  "choices.")
+
+  #   if extra_features is not None:
+  #     extra_features = jnp.array(extra_features)
+
+  #   if seed is None:
+  #     seed = utils.get_time_seed()
+
+  #   train_media_size = media.shape[0]
+  #   kernel = numpyro.infer.NUTS(
+  #       model=self._model_function,
+  #       target_accept_prob=target_accept_prob,
+  #       init_strategy=init_strategy)
+
+  #   mcmc = numpyro.infer.MCMC(
+  #       sampler=kernel,
+  #       num_warmup=number_warmup,
+  #       num_samples=number_samples,
+  #       num_chains=number_chains)
+  #   mcmc.run(
+  #       rng_key=jax.random.PRNGKey(seed),
+  #       media_data=jnp.array(media),
+  #       extra_features=extra_features,
+  #       target_data=jnp.array(target),
+  #       media_prior=jnp.array(media_prior),
+  #       degrees_seasonality=degrees_seasonality,
+  #       frequency=seasonality_frequency,
+  #       transform_function=self._model_transform_function,
+  #       weekday_seasonality=weekday_seasonality,
+  #       custom_priors=custom_priors)
+
+  #   self.custom_priors = custom_priors
+  #   if media_names is not None:
+  #     self.media_names = list(media_names)
+  #   else:
+  #     self.media_names = [f"channel_{i}" for i in range(media.shape[1])]
+  #   self.n_media_channels = media.shape[1]
+  #   self.n_geos = media.shape[2] if media.ndim == 3 else 1
+  #   self._media_prior = media_prior
+  #   self.trace = mcmc.get_samples()
+  #   self._number_warmup = number_warmup
+  #   self._number_samples = number_samples
+  #   self._number_chains = number_chains
+  #   self._target = target
+  #   self._train_media_size = train_media_size
+  #   self._degrees_seasonality = degrees_seasonality
+  #   self._seasonality_frequency = seasonality_frequency
+  #   self._weekday_seasonality = weekday_seasonality
+  #   self.media = media
+  #   self._extra_features = extra_features# jax-devicearray
+  #   self._mcmc = mcmc
+  #   logging.info("Model has been fitted")
+
   def fit(
       self,
       media: jnp.ndarray,
       media_prior: jnp.ndarray,
       target: jnp.ndarray,
+      exponents: jnp.ndarray,  # Add this line
       extra_features: Optional[jnp.ndarray] = None,
       degrees_seasonality: int = 2,
       seasonality_frequency: int = 52,
