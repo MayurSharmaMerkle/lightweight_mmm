@@ -226,7 +226,7 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
     gamma_beta_mean = jnp.mean(gamma_beta_samples, axis=0)
     exponent_mean = jnp.mean(exponent_samples, axis=0)
     print(gamma_alpha_samples.shape)
-    print(exponent.shape)
+    print(exponent_mean.shape)
     # Apply transformation using mean values
     gamma_adstock, weights = media_transforms.gamma_adstock(data=media_data, gamma_alpha=gamma_alpha_mean, gamma_beta=gamma_beta_mean, max_lag=max_lag)
     
