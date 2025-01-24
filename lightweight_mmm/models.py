@@ -230,6 +230,7 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
     gamma_alpha_mean = jnp.mean(gamma_alpha_samples, axis=0)
     gamma_beta_mean = jnp.mean(gamma_beta_samples, axis=0)
     print(gamma_alpha_samples.shape)
+    print(gamma_alpha_mean.shape)
     print(exponent.shape)
 
     # Apply transformation using mean values
