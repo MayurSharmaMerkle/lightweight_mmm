@@ -71,8 +71,8 @@ def gamma_adstock(data: jnp.ndarray,
                   gamma_beta: jnp.ndarray,
                   max_lag: int = 13) -> jnp.ndarray:
     lags = jnp.expand_dims(jnp.arange(1, max_lag + 1), axis=-1)
-    # weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
-    weights = jnp.power(lags, (gamma_alpha) - 1) * jnp.exp(-(gamma_beta) * lags)
+    weights = jnp.power(lags, (20 * gamma_alpha) - 1) * jnp.exp(-(10 * gamma_beta) * lags)
+    # weights = jnp.power(lags, (gamma_alpha) - 1) * jnp.exp(-(gamma_beta) * lags)
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights, axis=0, keepdims=True) + 1e-6  # Normalize weights for each column
 
