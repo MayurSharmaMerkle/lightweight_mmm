@@ -231,16 +231,17 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
         fn=custom_priors.get(_GAMMA_BETA,
                              transform_default_priors[_GAMMA_BETA]), sample_shape=(num_samples,))
         
-    with numpyro.plate(name=f"{_EXPONENT}_plate",
-                     size=media_data.shape[1]):
+    with numpyro.plate(name=f"{_EXPONENT}_plate", 
+                       size=media_data.shape[1]):
         exponent = numpyro.sample(
-        name=_EXPONENT,
-        fn=custom_priors.get(_EXPONENT,
-                             transform_default_priors[_EXPONENT]))
+            name=_EXPONENT, 
+            fn=custom_priors.get(_EXPONENT, 
+                                 transform_default_priors[_EXPONENT]), sample_shape=(num_samples,))
     
     # Calculate mean of samples for each channel separately
     gamma_alpha_mean = jnp.mean(gamma_alpha, axis=0)
     gamma_beta_mean = jnp.mean(gamma_beta, axis=0)
+    exponent_mean = jnp.mean(exponent, axis=0)
 
     # Apply transformation using mean values
     gamma_adstock = media_transforms.gamma_adstock(data=media_data, 
@@ -250,9 +251,10 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
     
     # Apply the provided exponents
     if media_data.ndim == 3:
-        exponent = jnp.expand_dims(exponent, axis=-1)
+        # exponent = jnp.expand_dims(exponent, axis=-1)
+        exponent_mean = jnp.expand_dims(exponent_mean, axis=-1)
     
-    return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+    return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent_mean)
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
