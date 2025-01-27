@@ -16,6 +16,7 @@
 
 import functools
 from typing import Union
+import pandas as pd
 
 import jax
 import jax.numpy as jnp
