@@ -301,8 +301,9 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
     #     # exponent = jnp.expand_dims(exponent, axis=-1)
     #     exponent_mean = jnp.expand_dims(exponent_mean, axis=-1)
     
-    # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent_mean)
+    
     return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+    # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent_mean)
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
