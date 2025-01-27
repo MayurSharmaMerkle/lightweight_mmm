@@ -639,8 +639,8 @@ def media_mix_model(
     #                              custom_priors=custom_priors,
     #                              **transform_kwargs if transform_kwargs else {}))
 
-    # Calculate mean values outside the transform function
-    gamma_alpha_mean, gamma_beta_mean, exponent_mean = calculate_mean_priors(custom_priors)
+    # # Calculate mean values outside the transform function
+    # gamma_alpha_mean, gamma_beta_mean, exponent_mean = calculate_mean_priors(custom_priors)
 
     media_transformed = numpyro.deterministic(
         name="media_transformed",

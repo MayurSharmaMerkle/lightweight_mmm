@@ -58,12 +58,14 @@ Prior = Union[
     float
 ]
 
+gamma_alpha_mean, gamma_beta_mean, exponent_mean = models.calculate_mean_priors()
 _NAMES_TO_MODEL_TRANSFORMS = immutabledict.immutabledict({
     "hill_adstock": models.transform_hill_adstock,
     "adstock": models.transform_adstock,
     "gamma_adstock": models.transform_gamma_adstock,
     "carryover": models.transform_carryover
 })
+
 _MODEL_FUNCTION = models.media_mix_model
 _DETERMINISTIC_VARIABLES = ("media_transformed", "mu")
 
