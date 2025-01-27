@@ -63,8 +63,6 @@ def _gamma_adstock_convolve(data: jnp.ndarray,
                             weights: jnp.ndarray,
                             max_lag: int) -> jnp.ndarray:
     window = jnp.concatenate([jnp.zeros(max_lag - 1), weights])
-    #print weights
-    jax.debug.print("Weight: {}", weights)
     return jax.scipy.signal.convolve(data, window, mode="same") / weights.sum()
 
 @functools.partial(jax.jit, static_argnames=("max_lag",))
@@ -77,10 +75,6 @@ def gamma_adstock(data: jnp.ndarray,
     # weights = jnp.power(lags, (gamma_alpha) - 1) * jnp.exp(-(gamma_beta) * lags)
     weights = jnp.where(jnp.isnan(weights) | jnp.isinf(weights), 0, weights)
     weights /= jnp.sum(weights, axis=0, keepdims=True) + 1e-6  # Normalize weights for each column
-    # # Use jax.debug.print for debugging
-    # jax.debug.print("Gamma Alpha: {}", gamma_alpha*20)
-    # jax.debug.print("Gamma Beta: {}", gamma_beta*10)
-    # jax.debug.print("Weight: {}", weights)
 
     convolve_func = _gamma_adstock_convolve
     if data.ndim == 3:
