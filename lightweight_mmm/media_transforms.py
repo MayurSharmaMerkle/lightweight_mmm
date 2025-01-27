@@ -85,10 +85,7 @@ def gamma_adstock(data: jnp.ndarray,
     # Ensure data has at least 2 dimensions
     if data.ndim == 1:
         data = data[:, None]
-    # return convolve_func(data, weights, max_lag)
-    result = convolve_func(data, weights, max_lag)
-    print(pd.DataFrame(weights))
-    return result, weights
+    return convolve_func(data, weights, max_lag)
 
 @jax.jit
 def adstock(data: jnp.ndarray,
