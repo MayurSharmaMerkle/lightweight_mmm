@@ -162,53 +162,53 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
   })
 
 
-# def transform_gamma_adstock(media_data: jnp.ndarray,
-#                       custom_priors: MutableMapping[str, Prior],
-#                       max_lag: int = 13) -> jnp.ndarray:
-#   """Transforms the input data with the gamma adstock function and exponent.
+def transform_gamma_adstock(media_data: jnp.ndarray,
+                      custom_priors: MutableMapping[str, Prior],
+                      max_lag: int = 13) -> jnp.ndarray:
+  """Transforms the input data with the gamma adstock function and exponent.
 
-#   Args:
-#     media_data: Media data to be transformed. It is expected to have 2 dims for
-#       national models and 3 for geo models.
-#     custom_priors: The custom priors we want the model to take instead of the
-#       default ones. The possible names of parameters for gamma adstock and exponent
-#       are "gamma_alpha", "gamma_beta" and "exponent".
+  Args:
+    media_data: Media data to be transformed. It is expected to have 2 dims for
+      national models and 3 for geo models.
+    custom_priors: The custom priors we want the model to take instead of the
+      default ones. The possible names of parameters for gamma adstock and exponent
+      are "gamma_alpha", "gamma_beta" and "exponent".
 
-#   Returns:
-#     The transformed media data.
-#   """
-#   transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
-#   with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate",
-#                      size=media_data.shape[1]):
-#     gamma_alpha = numpyro.sample(
-#         name=_GAMMA_ALPHA,
-#         fn=custom_priors.get(_GAMMA_ALPHA,
-#                              transform_default_priors[_GAMMA_ALPHA]))
+  Returns:
+    The transformed media data.
+  """
+  transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
+  with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate",
+                     size=media_data.shape[1]):
+    gamma_alpha = numpyro.sample(
+        name=_GAMMA_ALPHA,
+        fn=custom_priors.get(_GAMMA_ALPHA,
+                             transform_default_priors[_GAMMA_ALPHA]))
     
-#   with numpyro.plate(name=f"{_GAMMA_BETA}_plate",
-#                      size=media_data.shape[1]):
-#     gamma_beta = numpyro.sample(
-#         name=_GAMMA_BETA,
-#         fn=custom_priors.get(_GAMMA_BETA,
-#                              transform_default_priors[_GAMMA_BETA]))
+  with numpyro.plate(name=f"{_GAMMA_BETA}_plate",
+                     size=media_data.shape[1]):
+    gamma_beta = numpyro.sample(
+        name=_GAMMA_BETA,
+        fn=custom_priors.get(_GAMMA_BETA,
+                             transform_default_priors[_GAMMA_BETA]))
 
-#   with numpyro.plate(name=f"{_EXPONENT}_plate",
-#                      size=media_data.shape[1]):
-#     exponent = numpyro.sample(
-#         name=_EXPONENT,
-#         fn=custom_priors.get(_EXPONENT,
-#                              transform_default_priors[_EXPONENT]))
+  with numpyro.plate(name=f"{_EXPONENT}_plate",
+                     size=media_data.shape[1]):
+    exponent = numpyro.sample(
+        name=_EXPONENT,
+        fn=custom_priors.get(_EXPONENT,
+                             transform_default_priors[_EXPONENT]))
 
-#     gamma_adstock = media_transforms.gamma_adstock(
-#       data=media_data, 
-#       gamma_alpha=gamma_alpha, 
-#       gamma_beta=gamma_beta,
-#       max_lag=max_lag)
+    gamma_adstock = media_transforms.gamma_adstock(
+      data=media_data, 
+      gamma_alpha=gamma_alpha, 
+      gamma_beta=gamma_beta,
+      max_lag=max_lag)
     
-#   if media_data.ndim == 3:
-#     exponent = jnp.expand_dims(exponent, axis=-1)
+  if media_data.ndim == 3:
+    exponent = jnp.expand_dims(exponent, axis=-1)
 
-#   return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+  return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
 # def transform_gamma_adstock(media_data: jnp.ndarray, 
 #                             custom_priors: MutableMapping[str, Prior],  
@@ -305,88 +305,88 @@ def _get_transform_default_priors() -> Mapping[str, Prior]:
 #     return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 #     # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent_mean)
 
-#######################################################################################################
+# #######################################################################################################
 
-def calculate_mean_priors(custom_priors: MutableMapping[str, Prior],
-                          num_samples: int = 2000) -> jnp.ndarray:
-    """Calculates the mean values of gamma_alpha, gamma_beta, and exponent.
+# def calculate_mean_priors(custom_priors: MutableMapping[str, Prior],
+#                           num_samples: int = 2000) -> jnp.ndarray:
+#     """Calculates the mean values of gamma_alpha, gamma_beta, and exponent.
 
-    Args:
-        custom_priors: The custom priors for gamma_alpha, gamma_beta, and exponent.
-        num_samples: Number of samples to draw for calculating the mean.
+#     Args:
+#         custom_priors: The custom priors for gamma_alpha, gamma_beta, and exponent.
+#         num_samples: Number of samples to draw for calculating the mean.
 
-    Returns:
-        Tuple containing the mean values of gamma_alpha, gamma_beta, and exponent.
-    """
-    transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
+#     Returns:
+#         Tuple containing the mean values of gamma_alpha, gamma_beta, and exponent.
+#     """
+#     transform_default_priors = _get_transform_default_priors()["gamma_adstock"]
 
-    # Sample gamma_alpha_sample
-    gamma_alpha_sample = numpyro.sample(
-        name="gamma_alpha_sample",
-        fn=custom_priors.get("gamma_alpha", transform_default_priors["gamma_alpha"]),
-        sample_shape=(num_samples,))
+#     # Sample gamma_alpha_sample
+#     gamma_alpha_sample = numpyro.sample(
+#         name="gamma_alpha_sample",
+#         fn=custom_priors.get("gamma_alpha", transform_default_priors["gamma_alpha"]),
+#         sample_shape=(num_samples,))
     
-    # Sample gamma_beta_sample
-    gamma_beta_sample = numpyro.sample(
-        name="gamma_beta_sample",
-        fn=custom_priors.get("gamma_beta", transform_default_priors["gamma_beta"]),
-        sample_shape=(num_samples,))
+#     # Sample gamma_beta_sample
+#     gamma_beta_sample = numpyro.sample(
+#         name="gamma_beta_sample",
+#         fn=custom_priors.get("gamma_beta", transform_default_priors["gamma_beta"]),
+#         sample_shape=(num_samples,))
     
-    # Sample exponent_sample
-    exponent_sample = numpyro.sample(
-        name="exponent_sample",
-        fn=custom_priors.get("exponent", transform_default_priors["exponent"]),
-        sample_shape=(num_samples,))
+#     # Sample exponent_sample
+#     exponent_sample = numpyro.sample(
+#         name="exponent_sample",
+#         fn=custom_priors.get("exponent", transform_default_priors["exponent"]),
+#         sample_shape=(num_samples,))
     
-    # Calculate mean of samples for each channel separately
-    gamma_alpha_mean = jnp.mean(gamma_alpha_sample, axis=0)
-    gamma_beta_mean = jnp.mean(gamma_beta_sample, axis=0)
-    exponent_mean = jnp.mean(exponent_sample, axis=0)
+#     # Calculate mean of samples for each channel separately
+#     gamma_alpha_mean = jnp.mean(gamma_alpha_sample, axis=0)
+#     gamma_beta_mean = jnp.mean(gamma_beta_sample, axis=0)
+#     exponent_mean = jnp.mean(exponent_sample, axis=0)
 
-    return gamma_alpha_mean, gamma_beta_mean, exponent_mean
+#     return gamma_alpha_mean, gamma_beta_mean, exponent_mean
 
-def transform_gamma_adstock(media_data: jnp.ndarray,
-                            gamma_alpha_mean: jnp.ndarray,
-                            gamma_beta_mean: jnp.ndarray,
-                            exponent_mean: jnp.ndarray,
-                            max_lag: int = 13) -> jnp.ndarray:
-    """Transforms the input data with the gamma adstock function and exponent.
+# def transform_gamma_adstock(media_data: jnp.ndarray,
+#                             gamma_alpha_mean: jnp.ndarray,
+#                             gamma_beta_mean: jnp.ndarray,
+#                             exponent_mean: jnp.ndarray,
+#                             max_lag: int = 13) -> jnp.ndarray:
+#     """Transforms the input data with the gamma adstock function and exponent.
 
-    Args:
-        media_data: Media data to be transformed. It is expected to have 2 dims for
-          national models and 3 for geo models.
-        gamma_alpha_mean: Mean value of gamma_alpha.
-        gamma_beta_mean: Mean value of gamma_beta.
-        exponent_mean: Mean value of exponent.
-        max_lag: Maximum lag for the adstock transformation.
+#     Args:
+#         media_data: Media data to be transformed. It is expected to have 2 dims for
+#           national models and 3 for geo models.
+#         gamma_alpha_mean: Mean value of gamma_alpha.
+#         gamma_beta_mean: Mean value of gamma_beta.
+#         exponent_mean: Mean value of exponent.
+#         max_lag: Maximum lag for the adstock transformation.
 
-    Returns:
-        The transformed media data.
-    """
+#     Returns:
+#         The transformed media data.
+#     """
 
-    # Use the mean values in the plate
-    with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate", size=media_data.shape[1]):
-        gamma_alpha = numpyro.deterministic(name=_GAMMA_ALPHA, value=gamma_alpha_mean)
+#     # Use the mean values in the plate
+#     with numpyro.plate(name=f"{_GAMMA_ALPHA}_plate", size=media_data.shape[1]):
+#         gamma_alpha = numpyro.deterministic(name=_GAMMA_ALPHA, value=gamma_alpha_mean)
     
-    with numpyro.plate(name=f"{_GAMMA_BETA}_plate", size=media_data.shape[1]):
-        gamma_beta = numpyro.deterministic(name=_GAMMA_BETA, value=gamma_beta_mean)
+#     with numpyro.plate(name=f"{_GAMMA_BETA}_plate", size=media_data.shape[1]):
+#         gamma_beta = numpyro.deterministic(name=_GAMMA_BETA, value=gamma_beta_mean)
         
-    with numpyro.plate(name=f"{_EXPONENT}_plate", size=media_data.shape[1]):
-        exponent = numpyro.deterministic(name=_EXPONENT, value=exponent_mean)
+#     with numpyro.plate(name=f"{_EXPONENT}_plate", size=media_data.shape[1]):
+#         exponent = numpyro.deterministic(name=_EXPONENT, value=exponent_mean)
 
-    # Apply transformation using mean values
-    gamma_adstock = media_transforms.gamma_adstock(data=media_data, 
-                                                   gamma_alpha=gamma_alpha, 
-                                                   gamma_beta=gamma_beta, 
-                                                   max_lag=max_lag)
+#     # Apply transformation using mean values
+#     gamma_adstock = media_transforms.gamma_adstock(data=media_data, 
+#                                                    gamma_alpha=gamma_alpha, 
+#                                                    gamma_beta=gamma_beta, 
+#                                                    max_lag=max_lag)
     
-    # Apply the provided exponents
-    if media_data.ndim == 3:
-        exponent = jnp.expand_dims(exponent, axis=-1)
+#     # Apply the provided exponents
+#     if media_data.ndim == 3:
+#         exponent = jnp.expand_dims(exponent, axis=-1)
 
-    return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+#     return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
-######################################################################################################
+# ######################################################################################################
 
 def transform_adstock(media_data: jnp.ndarray,
                       custom_priors: MutableMapping[str, Prior],
@@ -633,21 +633,10 @@ def media_mix_model(
         elif transform_function == "gamma_adstock" and not transform_kwargs:
             transform_kwargs = {"max_lag": 13 * 7}
 
-    # media_transformed = numpyro.deterministic(
-    #     name="media_transformed",
-    #     value=transform_function(media_data,
-    #                              custom_priors=custom_priors,
-    #                              **transform_kwargs if transform_kwargs else {}))
-
-    # # Calculate mean values outside the transform function
-    # gamma_alpha_mean, gamma_beta_mean, exponent_mean = calculate_mean_priors(custom_priors)
-
     media_transformed = numpyro.deterministic(
         name="media_transformed",
         value=transform_function(media_data,
-                                 gamma_alpha_mean=gamma_alpha_mean,
-                                 gamma_beta_mean=gamma_beta_mean,
-                                 exponent_mean=exponent_mean,
+                                 custom_priors=custom_priors,
                                  **transform_kwargs if transform_kwargs else {}))
 
     seasonality = media_transforms.calculate_seasonality(

@@ -58,7 +58,6 @@ Prior = Union[
     float
 ]
 
-gamma_alpha_mean, gamma_beta_mean, exponent_mean = models.calculate_mean_priors()
 _NAMES_TO_MODEL_TRANSFORMS = immutabledict.immutabledict({
     "hill_adstock": models.transform_hill_adstock,
     "adstock": models.transform_adstock,
