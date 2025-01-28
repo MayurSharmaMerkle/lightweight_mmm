@@ -43,7 +43,6 @@ else:
 from typing import Any, Dict, Mapping, MutableMapping, Optional, Sequence, Union
 
 import immutabledict
-import jax
 import jax.numpy as jnp
 import numpyro
 from numpyro import distributions as dist
@@ -199,12 +198,9 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
         name=_EXPONENT,
         fn=custom_priors.get(_EXPONENT,
                              transform_default_priors[_EXPONENT]))
-    jax.debug.print("Gamma Alpha: {}", gamma_alpha)
-    jax.debug.print("Gamma Beta: {}", gamma_beta)
+
     gamma_alpha = gamma_alpha*20
     gamma_beta = gamma_beta*10
-    jax.debug.print("Gamma Alpha: {}", gamma_alpha)
-    jax.debug.print("Gamma Beta: {}", gamma_beta)
 
     gamma_adstock = media_transforms.gamma_adstock(
       data=media_data, 
