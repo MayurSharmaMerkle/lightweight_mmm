@@ -268,8 +268,10 @@ class LightweightMMM:
       number_samples: int = 1000,
       number_chains: int = 2,
       target_accept_prob: float = .85,
+      # init_strategy: Callable[[Mapping[Any, Any], Any],
+      #                         jnp.ndarray] = numpyro.infer.init_to_median,
       init_strategy: Callable[[Mapping[Any, Any], Any],
-                              jnp.ndarray] = numpyro.infer.init_to_median,
+                              jnp.ndarray] = numpyro.infer.init_to_mean,
       custom_priors: Optional[Dict[str, Prior]] = None,
       seed: Optional[int] = None) -> None:
     """Fits MMM given the media data, extra features, costs and sales/KPI.
