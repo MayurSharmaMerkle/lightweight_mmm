@@ -395,7 +395,6 @@ class LightweightMMM:
     self._mcmc = mcmc
     logging.info("Model has been fitted")
 
-
   def print_summary(self) -> None:
     """Calls print_summary function from numpyro to print parameters summary.
     """
