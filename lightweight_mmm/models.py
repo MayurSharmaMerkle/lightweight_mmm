@@ -494,6 +494,175 @@ def transform_carryover(media_data: jnp.ndarray,
   return media_transforms.apply_exponent_safe(data=carryover, exponent=exponent)
 
 
+# def media_mix_model(
+#     media_data: jnp.ndarray,
+#     target_data: jnp.ndarray,
+#     media_prior: jnp.ndarray,
+#     degrees_seasonality: int,
+#     frequency: int,
+#     transform_function,
+#     custom_priors,
+#     transform_kwargs=None,
+#     weekday_seasonality=False,
+#     extra_features=None,
+# ) -> None:
+#     """Media mix model.
+
+#     Args:
+#         media_data: Media data to be be used in the model.
+#         target_data: Target data for the model.
+#         media_prior: Cost prior for each of the media channels.
+#         degrees_seasonality: Number of degrees of seasonality to use.
+#         frequency: Frequency of the time span which was used to aggregate the data.
+#           Eg. if weekly data then frequency is 52.
+#         transform_function: Function to use to transform the media data in the
+#           model. Currently the following are supported: transform_gamma_adstock, 'transform_adstock',
+#             'transform_carryover' and 'transform_hill_adstock'.
+#         custom_priors: The custom priors we want the model to take instead of the
+#           default ones. See our custom_priors documentation for details about the
+#           API and possible options.
+#         transform_kwargs: Any extra keyword arguments to pass to the transform
+#           function. For example the adstock function can take a boolean to noramlise
+#           output or not.
+#         weekday_seasonality: In case of daily data you can estimate a weekday (7)
+#           parameter.
+#         extra_features: Extra features data to include in the model.
+#     """
+#     default_priors = _get_default_priors()
+#     data_size = media_data.shape[0]
+#     n_channels = media_data.shape[1]
+#     geo_shape = (media_data.shape[2],) if media_data.ndim == 3 else ()
+#     n_geos = media_data.shape[2] if media_data.ndim == 3 else 1
+
+#     with numpyro.plate(name=f"{_INTERCEPT}_plate", size=n_geos):
+#         intercept = numpyro.sample(
+#             name=_INTERCEPT,
+#             fn=custom_priors.get(_INTERCEPT, default_priors[_INTERCEPT]))
+
+#     with numpyro.plate(name=f"{_SIGMA}_plate", size=n_geos):
+#         sigma = numpyro.sample(
+#             name=_SIGMA,
+#             fn=custom_priors.get(_SIGMA, default_priors[_SIGMA]))
+
+#     # TODO(): Force all geos to have the same trend sign.
+#     with numpyro.plate(name=f"{_COEF_TREND}_plate", size=n_geos):
+#         coef_trend = numpyro.sample(
+#             name=_COEF_TREND,
+#             fn=custom_priors.get(_COEF_TREND, default_priors[_COEF_TREND]))
+
+#     expo_trend = numpyro.sample(
+#         name=_EXPO_TREND,
+#         fn=custom_priors.get(
+#             _EXPO_TREND, default_priors[_EXPO_TREND]))
+
+#     with numpyro.plate(
+#         name="channel_media_plate",
+#         size=n_channels,
+#         dim=-2 if media_data.ndim == 3 else -1):
+#         coef_media = numpyro.sample(
+#             name="channel_coef_media" if media_data.ndim == 3 else "coef_media",
+#             fn=dist.HalfNormal(scale=media_prior))
+#         if media_data.ndim == 3:
+#             with numpyro.plate(
+#                 name="geo_media_plate",
+#                 size=n_geos,
+#                 dim=-1):
+#                 # Corrects the mean to be the same as in the channel only case.
+#                 normalisation_factor = jnp.sqrt(2.0 / jnp.pi)
+#                 coef_media = numpyro.sample(
+#                     name="coef_media",
+#                     fn=dist.HalfNormal(scale=coef_media * normalisation_factor)
+#                 )
+
+#     with numpyro.plate(name=f"{_GAMMA_SEASONALITY}_sin_cos_plate", size=2):
+#         with numpyro.plate(name=f"{_GAMMA_SEASONALITY}_plate",
+#                            size=degrees_seasonality):
+#             gamma_seasonality = numpyro.sample(
+#                 name=_GAMMA_SEASONALITY,
+#                 fn=custom_priors.get(
+#                     _GAMMA_SEASONALITY, default_priors[_GAMMA_SEASONALITY]))
+
+#     if weekday_seasonality:
+#         with numpyro.plate(name=f"{_WEEKDAY}_plate", size=7):
+#             weekday = numpyro.sample(
+#                 name=_WEEKDAY,
+#                 fn=custom_priors.get(_WEEKDAY, default_priors[_WEEKDAY]))
+#         weekday_series = weekday[jnp.arange(data_size) % 7]
+#         # In case of daily data, number of lags should be 13*7.
+#         if transform_function == "carryover" and transform_kwargs and "number_lags" not in transform_kwargs:
+#             transform_kwargs["number_lags"] = 13 * 7
+#         elif transform_function == "carryover" and not transform_kwargs:
+#             transform_kwargs = {"number_lags": 13 * 7}
+#         if transform_function == "gamma_adstock" and transform_kwargs and "max_lag" not in transform_kwargs:
+#             transform_kwargs["max_lag"] = 13 * 7
+#         elif transform_function == "gamma_adstock" and not transform_kwargs:
+#             transform_kwargs = {"max_lag": 13 * 7}
+
+#     media_transformed = numpyro.deterministic(
+#         name="media_transformed",
+#         value=transform_function(media_data,
+#                                  custom_priors=custom_priors,
+#                                  **transform_kwargs if transform_kwargs else {}))
+
+#     seasonality = media_transforms.calculate_seasonality(
+#         number_periods=data_size,
+#         degrees=degrees_seasonality,
+#         frequency=frequency,
+#         gamma_seasonality=gamma_seasonality)
+    
+#     # For national model's case
+#     trend = jnp.arange(data_size)
+#     media_einsum = "tc, c -> t"  # t = time, c = channel
+#     coef_seasonality = 1
+
+#     # TODO(): Add conversion of prior for HalfNormal distribution.
+#     if media_data.ndim == 3:  # For geo model's case
+#         trend = jnp.expand_dims(trend, axis=-1)
+#         seasonality = jnp.expand_dims(seasonality, axis=-1)
+#         media_einsum = "tcg, cg -> tg"  # t = time, c = channel, g = geo
+#         if weekday_seasonality:
+#             weekday_series = jnp.expand_dims(weekday_series, axis=-1)
+#         with numpyro.plate(name="seasonality_plate", size=n_geos):
+#             coef_seasonality = numpyro.sample(
+#                 name=_COEF_SEASONALITY,
+#                 fn=custom_priors.get(
+#                     _COEF_SEASONALITY, default_priors[_COEF_SEASONALITY]))
+    
+#     # expo_trend is B(1, 1) so that the exponent on time is in [.5, 1.5].
+#     prediction = (
+#         intercept + coef_trend * trend ** expo_trend +
+#         seasonality * coef_seasonality +
+#         jnp.einsum(media_einsum, media_transformed, coef_media))
+    
+#     if extra_features is not None:
+#         plate_prefixes = ("extra_feature",)
+#         extra_features_einsum = "tf, f -> t"  # t = time, f = feature
+#         extra_features_plates_shape = (extra_features.shape[1],)
+#         if extra_features.ndim == 3:
+#             plate_prefixes = ("extra_feature", "geo")
+#             extra_features_einsum = "tfg, fg -> tg"  # t = time, f = feature, g = geo
+#             extra_features_plates_shape = (extra_features.shape[1], *geo_shape)
+#         with numpyro.plate_stack(plate_prefixes,
+#                                  sizes=extra_features_plates_shape):
+#             coef_extra_features = numpyro.sample(
+#                 name=_COEF_EXTRA_FEATURES,
+#                 fn=custom_priors.get(
+#                     _COEF_EXTRA_FEATURES, default_priors[_COEF_EXTRA_FEATURES]))
+#         extra_features_effect = jnp.einsum(extra_features_einsum,
+#                                            extra_features,
+#                                            coef_extra_features)
+#         prediction += extra_features_effect
+
+#     if weekday_seasonality:
+#         prediction += weekday_series
+#     mu = numpyro.deterministic(name="mu", value=prediction)
+
+#     numpyro.sample(
+#         name="target", fn=dist.Normal(loc=mu, scale=sigma), obs=target_data)
+
+
+#################################################################################################
+
 def media_mix_model(
     media_data: jnp.ndarray,
     target_data: jnp.ndarray,
@@ -561,7 +730,7 @@ def media_mix_model(
         dim=-2 if media_data.ndim == 3 else -1):
         coef_media = numpyro.sample(
             name="channel_coef_media" if media_data.ndim == 3 else "coef_media",
-            fn=dist.HalfNormal(scale=media_prior))
+            fn=dist.LogNormal(loc=0, scale=1))
         if media_data.ndim == 3:
             with numpyro.plate(
                 name="geo_media_plate",
@@ -571,7 +740,7 @@ def media_mix_model(
                 normalisation_factor = jnp.sqrt(2.0 / jnp.pi)
                 coef_media = numpyro.sample(
                     name="coef_media",
-                    fn=dist.HalfNormal(scale=coef_media * normalisation_factor)
+                    fn=dist.LogNormal(scale=coef_media * normalisation_factor)
                 )
 
     with numpyro.plate(name=f"{_GAMMA_SEASONALITY}_sin_cos_plate", size=2):
