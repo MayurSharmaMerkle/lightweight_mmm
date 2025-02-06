@@ -349,7 +349,7 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
 #   if media_data.ndim == 3:
 #     exponent = jnp.expand_dims(exponent, axis=-1)
 
-#   return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+  # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
 # ######################################################################################################
 
