@@ -351,7 +351,7 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
   # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
 
     # Define the exponents for each channel
-  exponents = jnp.array([1, 0.95, 1, 0.95, 0.95, 0.95, 0.95])
+  exponents = jnp.array([1, 0.3, 1, 0.2, 0.95, 0.95, 0.95])
   exponents = exponents.reshape(1, -1, 1)
   
   return gamma_adstock**exponents
