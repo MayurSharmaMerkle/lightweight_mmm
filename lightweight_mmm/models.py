@@ -217,7 +217,7 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
   # exponents = exponents.reshape(1, -1, 1)
   
   # return gamma_adstock**exponents
-  return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=1)
+  return gamma_adstock
 
 ####################################################################################################
 
