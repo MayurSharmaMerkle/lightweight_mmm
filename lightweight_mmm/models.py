@@ -212,11 +212,12 @@ def transform_gamma_adstock(media_data: jnp.ndarray,
   #   exponent = jnp.expand_dims(exponent, axis=-1)
 
   # return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=exponent)
+
+  # exponents = jnp.array([1, 0.3, 1, 0.6, 0.95, 0.95, 0.95])
+  # exponents = exponents.reshape(1, -1, 1)
   
-  exponents = jnp.array([1, 0.3, 1, 0.6, 0.95, 0.95, 0.95])
-  exponents = exponents.reshape(1, -1, 1)
-  
-  return gamma_adstock**exponents
+  # return gamma_adstock**exponents
+  return media_transforms.apply_exponent_safe(data=gamma_adstock, exponent=1)
 
 ####################################################################################################
 
