@@ -37,11 +37,14 @@ import jax
 import jax.numpy as jnp
 import matplotlib
 import matplotlib.pyplot as plt
+import matplotlib.gridspec
 import numpy as np
 import numpyro
 import pandas as pd
 import seaborn as sns
 from sklearn import metrics
+import regex as re
+import scipy.stats as stats
 
 from lightweight_mmm import lightweight_mmm
 from lightweight_mmm import models
@@ -1536,3 +1539,109 @@ def get_model_posterior(media_mix_model, media_names):
         df = df.astype(float)
 
     return df
+
+def plot_posteriors_with_priors(df, intercept_prior, gamma_alpha_input, gamma_beta_input, exponent, coef_extra_features_prior, channel_coef_media, coef_trend_prior,expo_trend_prior, gamma_seasonality_prior, sigma_prior, coef_seasonality_prior):
+    """
+    Plots posterior and prior distributions for parameters starting with specified prefixes.
+    """
+    prior_sample_size = 8000
+    channel_coef_samples = {}
+    prefixes = ["intercept", "gamma_alpha", "gamma_beta", "exponent","coef_extra_features", "channel_coef_media", "coef_media", "gamma_seasonality","sigma", "expo_trend", "coef_trend", "coef_seasonality"]
+    
+    for prefix in prefixes:
+        print("\033[1m" + prefix + "\033[0;0m")
+        param_columns = [col for col in df.columns if col.startswith(prefix)]
+        
+        for param_col in param_columns:
+            prior_samples = None
+            
+            if prefix == "intercept":
+                prior_samples = stats.halfnorm.rvs(scale=intercept_prior, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "gamma_alpha":
+                media_name = param_col.split("gamma_alpha_", maxsplit=1)[1]
+                if media_name in gamma_alpha_input:
+                    prior_a, prior_b = gamma_alpha_input[media_name]
+                    prior_samples = np.random.beta(a=prior_a, b=prior_b, size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+            
+            elif prefix == "gamma_beta":
+                media_name = param_col.split("gamma_beta_", maxsplit=1)[1]
+                if media_name in gamma_beta_input:
+                    prior_a, prior_b = gamma_beta_input[media_name]
+                    prior_samples = np.random.beta(a=prior_a, b=prior_b, size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+            
+            elif prefix == "exponent":
+                media_name = param_col.split("exponent_", maxsplit=1)[1]
+                if media_name in exponent:
+                    prior_a, prior_b = exponent[media_name]
+                    prior_samples = np.random.beta(a=prior_a, b=prior_b, size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+            
+            elif prefix == "coef_extra_features":
+                prior_mean, prior_sd = coef_extra_features_prior
+                prior_samples = np.random.normal(loc=prior_mean, scale=prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "channel_coef_media":
+                media_name = param_col.split("channel_coef_media_", maxsplit=1)[1]
+                if media_name in channel_coef_media:
+                    prior_sd = channel_coef_media[media_name]
+                    prior_samples = stats.halfnorm.rvs(scale=prior_sd, size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+                    channel_coef_samples[media_name] = prior_samples
+            
+            elif prefix == "coef_media":
+                media_name = param_col.split("coef_media_", maxsplit=1)[1]
+                media_name = re.sub(r"_Geo\d+$", "", media_name)
+                if media_name in channel_coef_samples:
+                    prior_samples = stats.halfnorm.rvs(scale=channel_coef_samples[media_name], size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+            
+            elif prefix == "coef_trend":
+                prior_mean, prior_sd = coef_trend_prior
+                prior_samples = np.random.normal(loc=prior_mean, scale=prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "expo_trend":
+                prior_mean, prior_sd = expo_trend_prior
+                prior_samples = np.random.uniform(low=prior_mean - prior_sd, high=prior_mean + prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "gamma_seasonality":
+                prior_mean, prior_sd = gamma_seasonality_prior
+                prior_samples = np.random.normal(loc=prior_mean, scale=prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "sigma":
+                prior_mean, prior_sd = sigma_prior
+                prior_samples = np.random.normal(loc=prior_mean, scale=prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            elif prefix == "coef_seasonality":
+                prior_sd = coef_seasonality_prior
+                prior_samples = stats.halfnorm.rvs(scale=prior_sd, size=prior_sample_size)
+                posterior_samples = df[param_col].values
+            
+            if prior_samples is None:
+                print(f"Skipping {param_col} due to missing prior information.")
+                continue
+            
+            min_length = min(len(prior_samples), len(posterior_samples))
+            prior_samples, posterior_samples = prior_samples[:min_length], posterior_samples[:min_length]
+            
+            plt.figure(figsize=(8, 2))
+            prior_mean, posterior_mean = prior_samples.mean(), posterior_samples.mean()
+            
+            # Use colors from code-1
+            sns.kdeplot(prior_samples, color='#00CACF', linewidth=3, label=f'Prior (Mean={prior_mean:.3f})')
+            sns.kdeplot(posterior_samples, color='#5B19C4', linewidth=3, label=f'Posterior (Mean={posterior_mean:.3f})')
+            
+            # Minimize the title font size
+            plt.title(f"Posterior and Prior Distribution of {param_col}", fontsize=10)
+            plt.xlabel(param_col)
+            plt.ylabel("Density")
+            plt.legend(fontsize=8)
+            plt.show()
