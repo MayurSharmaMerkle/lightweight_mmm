@@ -1274,6 +1274,8 @@ def _collect_features_for_prior_posterior_plot(
   ]
   channel_level_features = [
       models._AD_EFFECT_RETENTION_RATE,
+      models._GAMMA_ALPHA,
+      models._GAMMA_BETA,
       models._EXPONENT,
       models._HALF_MAX_EFFECTIVE_CONCENTRATION,
       models._LAG_WEIGHT,
