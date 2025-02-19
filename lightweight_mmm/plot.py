@@ -1450,3 +1450,89 @@ def plot_prior_and_posterior(
            i_ax=i_ax,
            **kwargs_for_helper_function)
   return fig
+
+def get_model_posterior(media_mix_model, media_names):
+    """
+    Extracts feature names from the media_mix_model and processes the features into a final DataFrame.
+    If the feature is in the specified list, its column names will be formatted using media_names.
+    """
+    media_features = {"gamma_alpha", "gamma_beta", "exponent", "coef_media", "channel_coef_media"}
+    
+    # Extract feature names
+    features = media_mix_model._prior_names
+    if not media_mix_model._weekday_seasonality:
+        features = features.difference([models._WEEKDAY])
+
+    if media_mix_model._extra_features is None:
+        features = features.difference(["coef_extra_features"])
+
+    if media_mix_model.media.ndim == 2:
+        features = features.difference(models.GEO_ONLY_PRIORS)
+        features = features.union(["coef_media"])
+    else:
+        features = features.union(["coef_media", "channel_coef_media"])
+
+    feature_names = list(features)
+
+    # Initialize final DataFrame
+    df = pd.DataFrame()
+
+    # Process each feature
+    for feature in feature_names:
+        data = media_mix_model.trace[feature]
+
+        if data.ndim == 3:  # Handling 3D data
+            geo_dfs = []
+            
+            if feature == "gamma_seasonality":
+                # Ensure last dimension is always 2 (sin, cos)
+                if data.shape[2] % 2 != 0:
+                    raise ValueError(f"Unexpected shape {data.shape} for gamma_seasonality. Expected last dimension to be even.")
+
+                num_seasons = data.shape[1]  # Number of seasonalities
+                
+                # Process before reshaping
+                for season in range(num_seasons):
+                    season_data = data[:, season, :]  # Keep the last dim intact
+                    season_df = pd.DataFrame(season_data, columns=[f"{feature}{season}_sin", f"{feature}{season}_cos"])
+                    geo_dfs.append(season_df)
+
+            else:
+                # Standard 3D handling for other features
+                for geo in range(data.shape[2]):
+                    geo_data = data[:, :, geo].reshape(data.shape[0], -1)
+                    geo_data = pd.DataFrame(geo_data)
+
+                    if feature in media_features and len(media_names) == geo_data.shape[1]:
+                        if feature == "channel_coef_media":
+                            geo_data.columns = [f"{feature}_{media}" for media in media_names]  # No Geo suffix
+                        else:
+                            geo_data.columns = [f"{feature}_{media}_Geo{geo}" for media in media_names]
+                    else:
+                        geo_data.columns = [f"{feature}{i}_Geo{geo}" for i in range(geo_data.shape[1])]
+
+                    geo_dfs.append(geo_data)
+
+            data = pd.concat(geo_dfs, axis=1)
+
+        else:  # Handling 2D data
+            if feature in ["coef_trend", "coef_seasonality", "intercept", "sigma"]:
+                geo_dfs = []
+                for geo in range(data.shape[1]):
+                    geo_data = pd.DataFrame(data[:, geo], columns=[f"{feature}_Geo{geo}"])
+                    geo_dfs.append(geo_data)
+                data = pd.concat(geo_dfs, axis=1)
+
+            else:
+                data = pd.DataFrame(data)
+
+                # If the feature is in media_features, set column names using media_names
+                if feature in media_features and len(media_names) == data.shape[1]:
+                    data.columns = [f"{feature}_{media}" for media in media_names]
+                else:
+                    data.columns = [f"{feature}{i}" for i in range(data.shape[1])]
+
+        df = data if df.empty else pd.concat([df, data], axis=1)
+        df = df.astype(float)
+
+    return df
