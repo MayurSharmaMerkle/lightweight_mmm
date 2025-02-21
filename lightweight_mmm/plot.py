@@ -1454,6 +1454,27 @@ def plot_prior_and_posterior(
            **kwargs_for_helper_function)
   return fig
 
+def get_prefixes(df):
+    keywords_to_keep = ['gamma_alpha', 'gamma_beta', 'exponent']
+    cleaned_columns = []
+    for col in df.columns:
+        if col.startswith('channel_coef_media'):
+            col = 'channel_coef_media'
+        elif col.startswith('coef_media'):
+            col = 'coef_media'
+        else:
+            for keyword in keywords_to_keep:
+                if keyword in col:
+                    col = keyword
+                    break
+            else:
+                col = re.sub(r'_Geo\d+', '', col)
+                col = re.sub(r'\d+_(sin|cos)$', '', col)
+                col = re.sub(r'\d+$', '', col)
+        cleaned_columns.append(col)
+
+    return list(set(cleaned_columns))
+
 def get_model_posterior(media_mix_model, media_names):
     """
     Extracts feature names from the media_mix_model and processes the features into a final DataFrame.
@@ -1546,7 +1567,7 @@ def plot_posteriors_with_priors(df, intercept_prior, gamma_alpha_input, gamma_be
     """
     prior_sample_size = 8000
     channel_coef_samples = {}
-    prefixes = ["intercept", "gamma_alpha", "gamma_beta", "exponent","coef_extra_features", "channel_coef_media", "coef_media", "gamma_seasonality","sigma", "expo_trend", "coef_trend", "coef_seasonality"]
+    prefixes = get_prefixes(df)
     
     for prefix in prefixes:
         print("\033[1m" + prefix + "\033[0;0m")
@@ -1584,7 +1605,7 @@ def plot_posteriors_with_priors(df, intercept_prior, gamma_alpha_input, gamma_be
                 prior_mean, prior_sd = coef_extra_features_prior
                 prior_samples = np.random.normal(loc=prior_mean, scale=prior_sd, size=prior_sample_size)
                 posterior_samples = df[param_col].values
-            
+
             elif prefix == "channel_coef_media":
                 media_name = param_col.split("channel_coef_media_", maxsplit=1)[1]
                 if media_name in channel_coef_media:
@@ -1592,12 +1613,17 @@ def plot_posteriors_with_priors(df, intercept_prior, gamma_alpha_input, gamma_be
                     prior_samples = stats.halfnorm.rvs(scale=prior_sd, size=prior_sample_size)
                     posterior_samples = df[param_col].values
                     channel_coef_samples[media_name] = prior_samples
-            
+
             elif prefix == "coef_media":
                 media_name = param_col.split("coef_media_", maxsplit=1)[1]
                 media_name = re.sub(r"_Geo\d+$", "", media_name)
+                normalisation_factor = jnp.sqrt(2.0 / jnp.pi)
                 if media_name in channel_coef_samples:
-                    prior_samples = stats.halfnorm.rvs(scale=channel_coef_samples[media_name], size=prior_sample_size)
+                    prior_samples = stats.halfnorm.rvs(scale=channel_coef_samples[media_name] * normalisation_factor, size=prior_sample_size)
+                    posterior_samples = df[param_col].values
+                elif media_name in channel_coef_media:
+                    prior_sd = channel_coef_media[media_name]
+                    prior_samples = stats.halfnorm.rvs(scale=prior_sd, size=prior_sample_size)
                     posterior_samples = df[param_col].values
             
             elif prefix == "coef_trend":
@@ -1635,11 +1661,9 @@ def plot_posteriors_with_priors(df, intercept_prior, gamma_alpha_input, gamma_be
             plt.figure(figsize=(8, 2))
             prior_mean, posterior_mean = prior_samples.mean(), posterior_samples.mean()
             
-            # Use colors from code-1
             sns.kdeplot(prior_samples, color='#00CACF', linewidth=3, label=f'Prior (Mean={prior_mean:.3f})')
             sns.kdeplot(posterior_samples, color='#5B19C4', linewidth=3, label=f'Posterior (Mean={posterior_mean:.3f})')
             
-            # Minimize the title font size
             plt.title(f"Posterior and Prior Distribution of {param_col}", fontsize=10)
             plt.xlabel(param_col)
             plt.ylabel("Density")
