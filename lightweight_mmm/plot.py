@@ -46,6 +46,7 @@ import seaborn as sns
 from sklearn import metrics
 import regex as re
 import scipy.stats as stats
+from sklearn.metrics import mean_absolute_percentage_error
 
 from lightweight_mmm import lightweight_mmm
 from lightweight_mmm import models
