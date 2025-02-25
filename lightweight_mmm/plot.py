@@ -39,6 +39,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.gridspec
 import numpy as np
+import arviz as az
 import numpyro
 import pandas as pd
 import seaborn as sns
