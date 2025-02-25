@@ -31,6 +31,9 @@ from typing import Callable, List, Optional, Sequence, Tuple, Union
 import jax.numpy as jnp
 import pandas as pd
 from sklearn import base
+import io
+import csv
+import sys
 
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 from statsmodels.tools.tools import add_constant
@@ -460,3 +463,24 @@ def check_data_quality(
 
   # TODO(): clean up output list
   return correlations, variances, spend_fractions, variance_inflation_factors
+
+def model_summary_to_csv(media_mix_model, path_to_csv):
+    """Captures the output of `print_summary` and saves it to a CSV file."""
+    output_buffer = io.StringIO()
+    original_stdout = sys.stdout
+
+    try:
+        sys.stdout = output_buffer
+        media_mix_model.print_summary()
+    finally:
+        sys.stdout = original_stdout
+
+    captured_output = output_buffer.getvalue()
+    output_buffer.close()
+    rows = [line.split() for line in captured_output.strip().split("\n")]
+
+    with open(path_to_csv, "w", newline="") as csv_file:
+        writer = csv.writer(csv_file)
+        writer.writerows(rows)
+
+    print(f"Output has been saved to '{path_to_csv}'")
