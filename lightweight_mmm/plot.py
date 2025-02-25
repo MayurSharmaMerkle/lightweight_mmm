@@ -792,42 +792,6 @@ def _call_fit_plotter(
                              
   return figure
 
-def _create_line_plot_for_true_predicted(predictions: jnp.ndarray,
-                             target: jnp.ndarray,
-                             axis: plt.Axes,
-                             interval_mid_range: float,
-                             digits: int,
-                             r2_score: float,
-                             mape_score: float):
-    """Helper function to create a shaded line plot.
-
-    Args:
-        predictions (jnp.ndarray): Predicted values.
-        target (jnp.ndarray): True values.
-        axis (plt.Axes): Matplotlib axis.
-        interval_mid_range (float): Confidence interval.
-        digits (int): Decimal precision.
-        r2_score (float): Computed R² score.
-        mape_score (float): Computed MAPE score.
-    """
-    upper_quantile = 1 - (1 - interval_mid_range) / 2
-    lower_quantile = (1 - interval_mid_range) / 2
-
-    upper_bound = jnp.quantile(predictions, q=upper_quantile, axis=0)
-    lower_bound = jnp.quantile(predictions, q=lower_quantile, axis=0)
-
-    axis.plot(target, c="grey", alpha=0.9, label="True Orders")
-    axis.plot(predictions, c="green", alpha=0.9, label="Predicted Orders")
-    axis.fill_between(range(len(target)), lower_bound, upper_bound, alpha=0.3, color="green")
-
-    axis.legend()
-    axis.yaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
-    axis.xaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
-
-    title = f"True vs Predicted KPI\nR² = {r2_score:.{digits}f}, MAPE = {mape_score:.{digits}f}%"
-    axis.title.set_text(title)
-
-
 def plot_true_vs_predicted(df: pd.DataFrame, interval_mid_range: float = 0.9, digits: int = 3):
     """Plots the true vs predicted values from a given DataFrame.
 
@@ -861,6 +825,41 @@ def plot_true_vs_predicted(df: pd.DataFrame, interval_mid_range: float = 0.9, di
     plt.close(figure)
 
     return figure
+
+
+def _create_line_plot_for_true_predicted(predictions: jnp.ndarray,
+                                         target: jnp.ndarray,
+                                         axis: plt.Axes,
+                                         interval_mid_range: float,
+                                         digits: int,
+                                         r2_score: float,
+                                         mape_score: float):
+    """Helper function to create a shaded line plot.
+
+    Args:
+        predictions (jnp.ndarray): Predicted values.
+        target (jnp.ndarray): True values.
+        axis (plt.Axes): Matplotlib axis.
+        interval_mid_range (float): Confidence interval.
+        digits (int): Decimal precision.
+        r2_score (float): Computed R² score.
+        mape_score (float): Computed MAPE score.
+    """
+    # Compute dynamic confidence intervals
+    std_dev = jnp.std(predictions)  # Compute standard deviation
+    upper_bound = predictions + std_dev * interval_mid_range
+    lower_bound = predictions - std_dev * interval_mid_range
+
+    axis.plot(target, c="grey", alpha=0.9, label="True Orders")
+    axis.plot(predictions, c="green", alpha=0.9, label="Predicted Orders")
+    axis.fill_between(range(len(target)), lower_bound, upper_bound, alpha=0.3, color="green")
+
+    axis.legend(loc="best")
+    axis.yaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
+    axis.xaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
+
+    title = f"True vs Predicted KPI\nR² = {r2_score:.{digits}f}, MAPE = {mape_score:.{digits}f}%"
+    axis.title.set_text(title)
 
 
 def plot_model_fit(media_mix_model: lightweight_mmm.LightweightMMM,
