@@ -629,7 +629,7 @@ def plot_var_cost(media: jnp.ndarray, costs: jnp.ndarray,
 
 def evaluate_and_plot_model_fit(media_mix_model: 'lightweight_mmm.LightweightMMM', target_scaler: Optional['preprocessing.CustomScaler'] = None,
 interval_mid_range: float = .9,digits: int = 3,save_plots: bool = True,
-save_path: str = '',) -> None:
+save_path: str = "",) -> None:
     """Calculates R2, MAPE, and optionally saves true vs predicted plots.
 
     Args:
@@ -675,9 +675,27 @@ def _calculate_metrics(predictions: jnp.ndarray, target: jnp.ndarray, interval_m
 
 def _save_plot(predictions: jnp.ndarray, target: jnp.ndarray, filename: str, interval_mid_range: float, digits: int, save_path: str):
     figure, ax = plt.subplots(1, 1, figsize=(10, 5))
-    _create_shaded_line_plot(predictions, target, ax, interval_mid_range, digits)
+    _create_line_plot(predictions, target, ax, interval_mid_range, digits)
     figure.savefig(f"{save_path}{filename}")
     plt.close(figure)
+
+def _create_line_plot(predictions: jnp.ndarray, target: jnp.ndarray, axis: plt.Axes, interval_mid_range: float, digits: int):
+    upper_quantile = 1 - (1 - interval_mid_range) / 2
+    lower_quantile = (1 - interval_mid_range) / 2
+    upper_bound = jnp.quantile(a=predictions, q=upper_quantile, axis=0)
+    lower_bound = jnp.quantile(a=predictions, q=lower_quantile, axis=0)
+    
+    r2, _ = az.r2_score(y_true=target, y_pred=predictions)
+    mape = 100 * metrics.mean_absolute_percentage_error(y_true=target, y_pred=predictions.mean(axis=0))
+    
+    axis.plot(jnp.arange(target.shape[0]), target, c="grey", alpha=.9)
+    axis.plot(jnp.arange(target.shape[0]), predictions.mean(axis=0), c="green", alpha=.9)
+    axis.fill_between(jnp.arange(target.shape[0]), lower_bound, upper_bound, alpha=.35, color="green")
+    axis.legend(["True KPI", "Predicted KPI"])
+    axis.yaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
+    axis.xaxis.grid(color="gray", linestyle="dashed", alpha=0.3)
+    title = f"True and Predicted KPI. R2 = {r2:.{digits}f}, MAPE = {mape:.{digits}f}%"
+    axis.title.set_text(title)
 
 
 def _create_shaded_line_plot(predictions: jnp.ndarray,
