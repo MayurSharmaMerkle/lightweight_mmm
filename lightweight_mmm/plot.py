@@ -626,6 +626,58 @@ def plot_var_cost(media: jnp.ndarray, costs: jnp.ndarray,
   plt.close()
   return fig
 
+def evaluate_and_plot_model_fit(media_mix_model: 'lightweight_mmm.LightweightMMM', target_scaler: Optional['preprocessing.CustomScaler'] = None,
+interval_mid_range: float = .9,digits: int = 3,save_plots: bool = True,
+save_path: str = '',) -> None:
+    """Calculates R2, MAPE, and optionally saves true vs predicted plots.
+
+    Args:
+        media_mix_model: Media mix model (must be fitted beforehand).
+        target_scaler: Scaler used to inverse transform predictions and targets.
+        interval_mid_range: Interval range for metric calculation and plotting.
+        digits: Decimal precision for metrics.
+        save_plots: Whether to save plots.
+        save_path: Directory to save plots.
+    """
+    if not hasattr(media_mix_model, "trace"):
+        raise lightweight_mmm.NotFittedModelError("Model must be fitted before evaluation.")
+    
+    target_train = media_mix_model._target
+    posterior_pred = media_mix_model.trace["mu"]
+    
+    if target_scaler:
+        posterior_pred = target_scaler.inverse_transform(posterior_pred)
+        target_train = target_scaler.inverse_transform(target_train)
+    
+    if posterior_pred.ndim == 3:  # Multiple calculations for geo model
+        for i in range(posterior_pred.shape[-1]):
+            r2, mape = _calculate_metrics(posterior_pred[..., i], target_train[..., i], interval_mid_range, digits)
+            print(f"Geo {i}: R2 = {r2:.{digits}f}, MAPE = {mape:.{digits}f}%")
+            
+            if save_plots:
+                _save_plot(posterior_pred[..., i], target_train[..., i], f"plot_geo_{i}.png", interval_mid_range, digits, save_path)
+    else:  # Single calculation for national model
+        r2, mape = _calculate_metrics(posterior_pred, target_train, interval_mid_range, digits)
+        print(f"R2 = {r2:.{digits}f}, MAPE = {mape:.{digits}f}%")
+        
+        if save_plots:
+            _save_plot(posterior_pred, target_train, "plot_national.png", interval_mid_range, digits, save_path)
+
+def _calculate_metrics(predictions: jnp.ndarray, target: jnp.ndarray, interval_mid_range: float, digits: int):
+    if predictions.shape[1] != len(target):
+        raise ValueError("Predicted data and ground-truth data must have the same length.")
+    
+    r2, _ = az.r2_score(y_true=target, y_pred=predictions)
+    mape = 100 * metrics.mean_absolute_percentage_error(y_true=target, y_pred=predictions.mean(axis=0))
+    
+    return r2, mape
+
+def _save_plot(predictions: jnp.ndarray, target: jnp.ndarray, filename: str, interval_mid_range: float, digits: int, save_path: str):
+    figure, ax = plt.subplots(1, 1, figsize=(10, 5))
+    _create_shaded_line_plot(predictions, target, ax, interval_mid_range, digits)
+    figure.savefig(f"{save_path}{filename}")
+    plt.close(figure)
+
 
 def _create_shaded_line_plot(predictions: jnp.ndarray,
                              target: jnp.ndarray,
